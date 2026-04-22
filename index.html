@@ -12,7 +12,6 @@ body {
   background: transparent;
 }
 
-/* PLACAR */
 #overlay {
   position:absolute;
   top:20px;
@@ -34,7 +33,6 @@ body {
   margin:0;
 }
 
-/* CONTROLES */
 #controls {
   position:absolute;
   bottom:20px;
@@ -98,8 +96,14 @@ input {
     <button onclick="add('B',-1)">-1 B</button>
   </div>
 
-  <h3>Tempo</h3>
+  <h4>Definir Placar</h4>
+  <div>
+    <input type="number" id="setScoreA" placeholder="Pts A">
+    <input type="number" id="setScoreB" placeholder="Pts B">
+    <button onclick="setScore()">Definir</button>
+  </div>
 
+  <h3>Tempo</h3>
   <div>
     <input type="number" id="setMin" placeholder="Min">
     <input type="number" id="setSec" placeholder="Seg">
@@ -113,7 +117,7 @@ input {
   </div>
 
   <div>
-    <button onclick="nextQ()">Próximo Quarto</button>
+    <button onclick="nextQ()">Próximo Período</button>
   </div>
 
 </div>
@@ -123,7 +127,6 @@ input {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-database.js";
 
-/* CONFIG FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyBdJW9Jhakm_4i4IkJJOtM4qcM8xSf2Yew",
   authDomain: "placar-live-fd339.firebaseapp.com",
@@ -141,11 +144,14 @@ const placarRef = ref(db, "placar");
 /* VARIÁVEIS */
 let scoreA = 0, scoreB = 0;
 let min = 10, sec = 0;
-let q = 1;
 let timer;
 
 let teamA = "TIME A";
 let teamB = "TIME B";
+
+/* PERÍODOS */
+let periodIndex = 0;
+const periods = ["Q1", "Q2", "Q3", "Q4", "OT1", "OT2"];
 
 /* RECEBE DADOS */
 onValue(placarRef, (snapshot) => {
@@ -155,25 +161,25 @@ onValue(placarRef, (snapshot) => {
     scoreB = data.scoreB ?? 0;
     min = data.min ?? 10;
     sec = data.sec ?? 0;
-    q = data.q ?? 1;
     teamA = data.teamA ?? "TIME A";
     teamB = data.teamB ?? "TIME B";
+    periodIndex = data.periodIndex ?? 0;
     update();
   }
 });
 
 /* SALVAR */
 function save(){
-  set(placarRef, { scoreA, scoreB, min, sec, q, teamA, teamB });
+  set(placarRef, { scoreA, scoreB, min, sec, teamA, teamB, periodIndex });
 }
 
-/* ATUALIZAR TELA */
+/* ATUALIZAR */
 function update(){
   document.getElementById("score").innerText =
     `${teamA} ${scoreA} x ${scoreB} ${teamB}`;
 
   document.getElementById("time").innerText =
-    `Q${q} - ${min}:${sec.toString().padStart(2,'0')}`;
+    `${periods[periodIndex]} - ${min}:${sec.toString().padStart(2,'0')}`;
 }
 
 /* FUNÇÕES */
@@ -185,6 +191,16 @@ window.add = function(team,p){
     scoreB += p;
     if(scoreB < 0) scoreB = 0;
   }
+  save();
+};
+
+window.setScore = function(){
+  let a = parseInt(document.getElementById("setScoreA").value);
+  let b = parseInt(document.getElementById("setScoreB").value);
+
+  if(!isNaN(a)) scoreA = a;
+  if(!isNaN(b)) scoreB = b;
+
   save();
 };
 
@@ -237,7 +253,7 @@ window.reset = function(){
 };
 
 window.nextQ = function(){
-  q = q < 4 ? q+1 : 1;
+  periodIndex = (periodIndex + 1) % periods.length;
   reset();
 };
 
